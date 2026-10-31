@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>砚 Inkstone · 写作智能体</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23B23A2F'/><text x='16' y='23' font-size='18' text-anchor='middle' fill='%23FDF9F2' font-family='serif'>砚</text></svg>">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="preset-paper">
+
+<div class="bg-layer" id="bgLayer"></div>
+<div class="bg-veil" id="bgVeil"></div>
+
+<div class="app" id="app">
+
+  <!-- ============ 图标栏 ============ -->
+  <nav class="rail" id="rail">
+    <div class="brand"><div class="brand-mark">砚</div></div>
+
+    <button class="rail-btn on" data-view="write" title="写作">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <path d="M4.5 3.5h8l3 3v10h-11z"/><path d="M7 8h6M7 11h6M7 14h4"/>
+      </svg><span>写作</span>
+    </button>
+    <button class="rail-btn" data-view="book" title="书稿">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <path d="M3 4.2c2.4-.8 4.6-.8 7 .4 2.4-1.2 4.6-1.2 7-.4v11.2c-2.4-.8-4.6-.8-7 .4-2.4-1.2-4.6-1.2-7-.4z"/>
+        <path d="M10 4.6v11.2"/>
+      </svg><span>书稿</span>
+    </button>
+    <button class="rail-btn" data-view="skills" title="技能">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <path d="M10 3.2 11.7 8l4.8 1.7-4.8 1.7L10 16.2 8.3 11.4 3.5 9.7 8.3 8z"/>
+      </svg><span>技能</span>
+    </button>
+    <button class="rail-btn" data-view="project" title="档案">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <path d="M3 5.5h4.4l1.4 1.8H17v8.2H3z"/>
+      </svg><span>档案</span>
+    </button>
+
+    <div class="rail-spacer"></div>
+
+    <button class="rail-btn" id="btnBg" title="外观与主题">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M10 3a7 7 0 0 0 0 14c1.2 0 1.8-.8 1.8-1.7 0-1-.7-1.5-.7-2.3 0-.8.6-1.3 1.5-1.3H14a3 3 0 0 0 3-3C17 5.6 13.9 3 10 3Z"/>
+        <circle cx="7" cy="8" r="1"/><circle cx="10.5" cy="6.6" r="1"/><circle cx="6.4" cy="11.6" r="1"/>
+      </svg><span>主题</span>
+    </button>
+    <button class="rail-btn" id="btnSettings" title="设置">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M10 12.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z"/>
+        <path d="M15.6 12.2a1.3 1.3 0 0 0 .26 1.43l.05.05a1.57 1.57 0 1 1-2.22 2.22l-.05-.05a1.3 1.3 0 0 0-1.43-.26 1.3 1.3 0 0 0-.79 1.19v.14a1.57 1.57 0 0 1-3.14 0v-.07a1.3 1.3 0 0 0-.85-1.19 1.3 1.3 0 0 0-1.43.26l-.05.05A1.57 1.57 0 1 1 3.73 13.7l.05-.05a1.3 1.3 0 0 0 .26-1.43 1.3 1.3 0 0 0-1.19-.79H2.7a1.57 1.57 0 1 1 0-3.14h.07a1.3 1.3 0 0 0 1.19-.85 1.3 1.3 0 0 0-.26-1.43l-.05-.05A1.57 1.57 0 1 1 5.87 3.74l.05.05a1.3 1.3 0 0 0 1.43.26h.06a1.3 1.3 0 0 0 .79-1.19V2.7a1.57 1.57 0 1 1 3.14 0v.07a1.3 1.3 0 0 0 .79 1.19 1.3 1.3 0 0 0 1.43-.26l.05-.05a1.57 1.57 0 1 1 2.22 2.22l-.05.05a1.3 1.3 0 0 0-.26 1.43v.06a1.3 1.3 0 0 0 1.19.79h.14a1.57 1.57 0 1 1 0 3.14h-.07a1.3 1.3 0 0 0-1.19.79Z"/>
+      </svg><span>设置</span>
+    </button>
+  </nav>
+
+  <!-- ============ 列表栏 ============ -->
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <span id="panelTitle">写作</span>
+      <button class="panel-add hidden" id="btnBookList" title="所有书稿">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+          <path d="M2.6 3.4c1.9-.6 3.6-.6 5.4.3 1.8-.9 3.5-.9 5.4-.3v9.2c-1.9-.6-3.6-.6-5.4.3-1.8-.9-3.5-.9-5.4-.3z"/>
+          <path d="M8 3.7v9.2"/>
+        </svg>
+      </button>
+      <button class="panel-add" id="btnNew" title="新建创作">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="panel-add hidden" id="btnImportSkill" title="导入技能（.md 或 .zip）">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5v8m0 0-3-3m3 3 3-3"/><path d="M3 11.5v1a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5v-1"/></svg>
+      </button>
+    </div>
+    <div class="trainer-card hidden" id="trainerCard"></div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-foot">
+      <button class="foot-btn" id="btnModel">
+        <i class="dot" id="modelDot"></i>
+        <span class="foot-text" id="modelName">未配置模型</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="main">
+    <div class="view view-write" id="viewWrite">
+    <header class="topbar">
+      <button class="menu-btn" id="btnMenu" title="记录">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h14M3 10h14M3 14h9"/></svg>
+      </button>
+
+      <button class="skill-pick" id="skillPick">
+        <span class="skill-accent" id="skillAccent"></span>
+        <span class="skill-title" id="skillName">长篇小说引擎</span>
+        <svg class="chev" viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="top-actions">
+        <button class="ghost icon-only" id="btnCompact" title="压缩上下文（把早期对话合并成前情提要）">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 3h10M3 13h10"/><path d="M8 6v4m0 0-2-2m2 2 2-2"/></svg>
+        </button>
+        <button class="ghost" id="btnProject" title="创作档案">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 4.5h4l1.2 1.6h5.8v6.4h-11z"/></svg>
+          创作档案
+        </button>
+        <button class="ghost" id="btnExport" title="导出 Markdown">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12.5h10"/></svg>
+          导出
+        </button>
+        <button class="ghost icon-only" id="btnLook" title="外观与主题">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="3" width="12" height="10" rx="1.6"/><circle cx="6" cy="6.4" r="1.1"/><path d="M2.6 11.4 6.4 8l3 2.6L11.6 8l1.8 1.8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="thread" id="thread"></div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="stages" id="stages"></div>
+      <div class="materials hidden" id="materials"></div>
+      <div class="cmd-pop hidden" id="cmdPop"></div>
+      <div class="composer" id="composer">
+        <textarea id="input" rows="1" placeholder="写下你想写的东西…"></textarea>
+        <div class="composer-bar">
+          <button class="mini" id="btnAttach" title="导入素材（txt / md / docx / epub / pdf）">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10.5 5.5 6 10a2 2 0 1 0 2.8 2.8l5-5a3.4 3.4 0 0 0-4.8-4.8l-5 5a4.8 4.8 0 0 0 6.8 6.8l3.4-3.4"/></svg>
+            素材
+          </button>
+          <div class="hint" id="hint">Enter 发送 · Shift + Enter 换行</div>
+          <div class="cbtns">
+            <button class="stop hidden" id="btnStop">停止</button>
+            <button class="send" id="btnSend">
+              发送
+              <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="foot-note" id="footNote"></div>
+    </div>
+    </div>
+
+    <!-- ============ 书稿视图 ============ -->
+    <div class="view view-book hidden" id="viewBook">
+      <header class="topbar">
+        <button class="menu-btn" id="btnBookMenu" title="章节列表">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h14M3 10h14M3 14h9"/></svg>
+        </button>
+        <div class="book-head-info">
+          <input class="book-title-input" id="bookTitle" placeholder="未命名书稿">
+          <div class="book-meta" id="bookMeta"></div>
+        </div>
+        <div class="top-actions">
+          <button class="ghost" id="btnBookWrite">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13c0-2 1-3 2.5-3S8 11 8 13M11 2.6l2.4 2.4-6.4 6.4-3 .6.6-3z"/></svg>
+            续写
+          </button>
+          <button class="ghost" id="btnBookCheck">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 8.4 6 11.8l7.4-7.4"/></svg>
+            校验
+          </button>
+          <button class="ghost icon-only" id="btnBookExport" title="导出书稿">
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12.5h10"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="ch-wrap">
+        <div class="ch-empty" id="chEmpty">
+          <div class="empty-mark">稿</div>
+          <div class="empty-sub">左边选一章，或者新建一章。</div>
+          <div class="empty-tips">
+            <div>把整本书拖进来，会自动按「第X章」切开</div>
+            <div>设定库和正文分开存，写的时候只拉相关片段</div>
+          </div>
+        </div>
+        <div class="ch-body hidden" id="chBody">
+          <div class="ch-head">
+            <input class="ch-title-input" id="chTitle" placeholder="章节标题">
+            <div class="ch-tools">
+              <span class="ch-words" id="chWords">0 字</span>
+              <button class="mini" id="btnChOutline" title="本章提纲">提纲</button>
+              <button class="mini" id="btnChSnap" title="历史版本">版本</button>
+            </div>
+          </div>
+          <textarea class="ch-text" id="chText" spellcheck="false" placeholder="从这里开始写……"></textarea>
+          <div class="ch-status" id="chStatus"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 右侧信息栏 ============ -->
+  <aside class="inspector" id="inspector">
+    <div class="insp-sec">
+      <div class="insp-label">当前作品</div>
+      <div class="insp-title" id="inspProject">未命名</div>
+      <div class="insp-sub" id="inspGenre">还没有设定类型</div>
+    </div>
+    <div class="insp-sec">
+      <div class="insp-label">统计</div>
+      <div id="inspStats"></div>
+    </div>
+    <div class="insp-sec">
+      <div class="insp-label">档案摘要</div>
+      <div id="inspBrief"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ 创作档案抽屉 ============ -->
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <h3 id="drawerTitle">创作档案</h3>
+      <p id="drawerSub">这里填的内容会注入每一轮对话，作为本书的唯一事实来源。</p>
+    </div>
+    <button class="icon-btn" id="btnDrawerClose">
+      <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="projectForm"></div>
+  <div class="drawer-foot">
+    <span class="save-state" id="saveState">自动保存</span>
+    <div class="drawer-acts" id="drawerActs">
+      <button class="ghost" id="btnClearProject">清空</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ 底部结果面板（续写/校验/推演） ============ -->
+<div class="sheet-mask" id="sheetMask"></div>
+<section class="sheet" id="sheet">
+  <div class="sheet-head">
+    <span class="sheet-title" id="sheetTitle">结果</span>
+    <div class="sheet-acts">
+      <button class="mini" id="btnSheetCopy">复制</button>
+      <button class="icon-btn" id="btnSheetClose">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot" id="sheetFoot"></div>
+</section>
+
+<!-- ============ 技能选择浮层 ============ -->
+<div class="pop-mask" id="skillMask"></div>
+<div class="pop skill-pop" id="skillPop">
+  <div class="pop-head">选择技能</div>
+  <div class="pop-body" id="skillPopBody"></div>
+</div>
+
+<!-- ============ 设置 ============ -->
+<div class="modal-mask" id="modalMask"></div>
+<div class="modal" id="modal">
+  <div class="modal-head">
+    <h3>设置</h3>
+    <button class="icon-btn" id="btnModalClose">
+      <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    </button>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="model">模型</button>
+    <button class="tab" data-tab="gen">生成</button>
+    <button class="tab" data-tab="look">外观</button>
+    <button class="tab" data-tab="pref">写作偏好</button>
+    <button class="tab" data-tab="store">存储</button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-foot">
+    <span class="modal-note" id="modalNote">配置保存在本机 data/config.json</span>
+    <button class="primary" id="btnSaveSettings">保存</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileBg" accept="image/*" hidden>
+  <input type="file" id="fileBook" accept=".txt,.md,.markdown,.docx,.epub,.pdf" hidden>
+  <input type="file" id="fileSkill" accept=".md,.markdown,.zip" hidden>
+  <input type="file" id="fileDoc" accept=".txt,.md,.markdown,.csv,.tsv,.json,.log,.srt,.html,.htm,.docx,.epub,.pdf" hidden>
+
+<script src="/static/theme.js"></script>
+<script src="/static/templates.js"></script>
+<script src="/static/workflows.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

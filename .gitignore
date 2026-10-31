@@ -1,0 +1,30 @@
+# 用户数据：书稿、对话、背景图、配置里的 API Key，绝不能进仓库
+data/
+inkstone.data.json
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# PyInstaller
+build/
+dist/
+*.manifest
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时产物
+*.tmp
+*.bak
+_smoke_*.json
+shot-*.png
