@@ -144,6 +144,8 @@ pyinstaller Inkstone.spec
 
 ## 许可
 
-[MIT](LICENSE)
+代码以 [MIT](LICENSE) 授权。
 
-技能文件（`skills/*.md`）里的提示词可以随意改、随意分发。
+`skills/` 目录下的技能提示词**不全是原创**，部分改编自开源项目，各自保留原许可（MIT / Apache-2.0）。具体来源、原作者与改动说明见 [THIRD-PARTY.md](THIRD-PARTY.md)。
+
+如果你要二次分发或商用，请连同 `THIRD-PARTY.md` 一起保留——这是 MIT 和 Apache-2.0 的共同要求。
