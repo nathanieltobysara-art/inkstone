@@ -82,7 +82,7 @@ data/books/<bid>/
 ### 方式二：从源码运行
 
 ```bash
-git clone https://github.com/<你的用户名>/inkstone.git
+git clone https://github.com/nathanieltobysara-art/inkstone.git
 cd inkstone
 pip install -r requirements.txt
 python app.py
