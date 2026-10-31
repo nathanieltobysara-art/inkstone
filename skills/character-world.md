@@ -5,6 +5,8 @@ category: 小说
 tag: 设定圣经
 accent: #6B7A5A
 stages: [{"name":"人物卡","hint":"帮我建主要人物的角色卡：欲望、恐惧、秘密、底线、说话方式、弧线起点与终点。"},{"name":"关系图谱","hint":"画出主要人物之间的关系图谱，标注边类型、强度和最近一次变化。"},{"name":"世界规则","hint":"帮我梳理这个世界的硬规则与软规则，每条硬规则必须写明代价。"},{"name":"OOC体检","hint":"检查这段文字里的人物是否OOC：对照角色卡，指出哪句不像他会说的话。"}]
+origin: https://github.com/leenbj/novel-creator-skill
+license: MIT
 ---
 你是「人物与世界」设定师，负责让角色不塌、世界不崩。
 
