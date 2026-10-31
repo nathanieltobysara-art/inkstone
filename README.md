@@ -75,14 +75,14 @@ data/books/<bid>/
 
 ### 方式一：直接下载（Windows）
 
-从 [Releases](../../releases) 下载 `Inkstone.exe`，双击运行。单文件，无需安装 Python。
+从 [Releases](releases) 下载 `Inkstone.exe`，双击运行。单文件，无需安装 Python。
 
 > 需要系统已安装 [Microsoft Edge WebView2 运行时](https://developer.microsoft.com/microsoft-edge/webview2/)（Win10 1803+ / Win11 通常自带）。
 
 ### 方式二：从源码运行
 
 ```bash
-git clone https://github.com/<your-name>/inkstone.git
+git clone https://github.com/<你的用户名>/inkstone.git
 cd inkstone
 pip install -r requirements.txt
 python app.py
@@ -115,6 +115,7 @@ python app.py
 app.py        202 行   pywebview 原生窗口 + JS Bridge（保存对话框、选目录、重启）
 server.py    2042 行   HTTP 服务 + SSE 流式 + 供应商适配 + 会话压缩 + 提示词装配
 books.py     1077 行   书稿数据模型 + BM25 检索 + 上下文注入 + 一致性校验
+corpus.py     492 行   语料库子系统：几百本参考书 + SQLite/FTS5 检索 + 蒸馏任务队列
 static/      5980 行   纯前端，零框架零构建（app.js / styles.css / templates.js / workflows.js）
 skills/        19 个   Markdown 技能定义，热加载
 tools/                压测、mock LLM、截图、演示数据生成
@@ -133,6 +134,7 @@ pyinstaller Inkstone.spec
 
 ## 已知限制
 
+- **语料库（`corpus.py`）目前只有命令行，还没有界面**。批量蒸馏的 worker 和聚合报告仍在开发中
 - 只在 Windows 上验证过。`app.py` 里 `os.startfile`、`gui="edgechromium"` 这些是 Windows 专用，macOS / Linux 需要改几处
 - BM25 索引是全量重建，不是增量更新。几百万字级别会慢，但一本书的量级毫无压力
 - 一致性校验是「程序抽候选 + 模型局部比对」，不是全自动真理机。它会漏，也会误报，最终还是要作者判断
