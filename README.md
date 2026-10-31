@@ -148,4 +148,6 @@ pyinstaller Inkstone.spec
 
 `skills/` 目录下的技能提示词**不全是原创**，部分改编自开源项目，各自保留原许可（MIT / Apache-2.0）。具体来源、原作者与改动说明见 [THIRD-PARTY.md](THIRD-PARTY.md)。
 
+其中 3 个文件（`academic` / `interactive` / `review`）的原始出处仍在追溯，**不随本仓库的 MIT 许可授权**，商用前请自行判断。
+
 如果你要二次分发或商用，请连同 `THIRD-PARTY.md` 一起保留——这是 MIT 和 Apache-2.0 的共同要求。
