@@ -63,6 +63,14 @@ data/books/<bid>/
 - **11 个写作模板**：6 个章节模板（冲突章 / 打脸章 / 过渡章 / 感情线章 / 悬念章 / 高潮章）+ 5 个结构模板（黄金三章 / 三幕剧 / 起承转合 / 英雄之旅 / 爽文节奏表）
 - **素材导入**：txt / md / docx / epub / pdf / html / csv，自动抽取正文
 
+### 语料库（几百本参考书）
+
+- **导入**：整个目录递归扫描 txt / md，自动按「第 N 章」切章。300 本 / 8928 万字约 47 秒
+- **跨书检索**：SQLite FTS5 + 中文 bigram，9000 万字量级 **3.8 ms**，人名和地名都能秒出
+- **批量蒸馏**：章级摘要 + 关键事件 + 章末钩子 + 爽点类型，并发执行、失败重试、断点续跑
+- **按题材聚合**：章长、句长、短句占比、对话占比、爽点类型分布，生成一份可落盘的对标报告
+- **抽样策略**：前 30 章 / 前 30 + 每 5 章抽 1 / 全量。默认中档，比逐章跑省 60% 调用
+
 ### 工程
 
 - **11 个模型供应商开箱可用**：DeepSeek、OpenAI、Claude、Kimi、智谱 GLM、通义千问、硅基流动、OpenRouter、Ollama、LM Studio、vLLM / 任意 OpenAI 兼容接口
@@ -115,10 +123,10 @@ python app.py
 
 ```
 app.py        202 行   pywebview 原生窗口 + JS Bridge（保存对话框、选目录、重启）
-server.py    2042 行   HTTP 服务 + SSE 流式 + 供应商适配 + 会话压缩 + 提示词装配
+server.py    2138 行   HTTP 服务 + SSE 流式 + 供应商适配 + 会话压缩 + 提示词装配
 books.py     1077 行   书稿数据模型 + BM25 检索 + 上下文注入 + 一致性校验
-corpus.py     492 行   语料库子系统：几百本参考书 + SQLite/FTS5 检索 + 蒸馏任务队列
-static/      5980 行   纯前端，零框架零构建（app.js / styles.css / templates.js / workflows.js）
+corpus.py     875 行   语料库：SQLite/FTS5 检索 + 蒸馏 worker + 题材聚合
+static/      6450 行   纯前端，零框架零构建（app.js / styles.css / templates.js / workflows.js）
 skills/        19 个   Markdown 技能定义，热加载
 tools/                压测、mock LLM、截图、演示数据生成
 ```
@@ -136,7 +144,7 @@ pyinstaller Inkstone.spec
 
 ## 已知限制
 
-- **语料库（`corpus.py`）目前只有命令行，还没有界面**。批量蒸馏的 worker 和聚合报告仍在开发中
+- **语料库只有 BM25 全文检索，没有语义检索**。找「相同的词」很快，找「类似的写法」还做不到；也没有跨书自动抽取人物卡
 - 只在 Windows 上验证过。`app.py` 里 `os.startfile`、`gui="edgechromium"` 这些是 Windows 专用，macOS / Linux 需要改几处
 - BM25 索引是全量重建，不是增量更新。几百万字级别会慢，但一本书的量级毫无压力
 - 一致性校验是「程序抽候选 + 模型局部比对」，不是全自动真理机。它会漏，也会误报，最终还是要作者判断

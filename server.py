@@ -21,9 +21,10 @@ import zipfile
 import zlib
 from html import unescape as html_unescape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 import books
+import corpus
 
 FROZEN = getattr(sys, "frozen", False)
 
@@ -105,6 +106,76 @@ MATERIAL_BUDGET = 24000   # 参考资料注入上限（字符）
 
 _lock = threading.Lock()
 books.init(DATA, _lock)
+corpus.init(os.path.join(DATA, "corpus.db"))
+
+
+# ---------------------------------------------------------------- 语料库
+_CORPUS_RUN = {"running": False, "done": 0, "failed": 0, "log": [], "stop": False}
+
+
+def corpus_overview():
+    return {"overview": corpus.overview(), "books": corpus.list_books()}
+
+
+def corpus_import(name, text):
+    title = os.path.splitext(os.path.basename(name or "未命名"))[0]
+    r = corpus.add_book(title, text, source=name)
+    return r
+
+
+def corpus_plan(plan="sample"):
+    total = 0
+    for b in corpus.list_books(1000):
+        total += corpus.plan_jobs(b["sid"], plan).get("planned", 0)
+    return {"ok": True, "planned": total, "plan": plan, "estimate": corpus.estimate()}
+
+
+def corpus_style_all():
+    n = 0
+    for b in corpus.list_books(1000):
+        if corpus.style_metrics(b["sid"]):
+            n += 1
+    return {"ok": True, "count": n}
+
+
+def corpus_start(body):
+    if _CORPUS_RUN.get("running"):
+        return {"ok": False, "error": "已有蒸馏任务在跑"}
+    cfg = load_config()
+    p = find_provider(cfg, body.get("providerId"))
+    if not p or not p.get("baseUrl"):
+        return {"ok": False, "error": "没有可用的模型配置"}
+    est = corpus.estimate()
+    if not est["jobs"]:
+        return {"ok": False, "error": "没有待办任务，先排任务"}
+    conc = max(1, min(16, int(body.get("concurrency") or 4)))
+    mx = int(body.get("max") or 0) or None
+    _CORPUS_RUN.update({"running": True, "done": 0, "failed": 0, "log": [], "stop": False})
+
+    def emit(kind, d):
+        if kind == "done":
+            _CORPUS_RUN["done"] = d.get("done", 0)
+            _CORPUS_RUN["failed"] = d.get("failed", 0)
+            _CORPUS_RUN["log"].append("第 %s 章 → %s" % (d.get("no", "?"), d.get("beat", "")))
+        elif kind == "fail":
+            _CORPUS_RUN["failed"] = d.get("failed", 0)
+            _CORPUS_RUN["log"].append("失败 第 %s 章：%s" % (d.get("no", "?"), d.get("error", "")))
+        _CORPUS_RUN["log"] = _CORPUS_RUN["log"][-80:]
+
+    def work():
+        try:
+            corpus.run_jobs(
+                {"kind": p.get("kind"), "baseUrl": p.get("baseUrl"),
+                 "apiKey": p.get("apiKey"), "model": p.get("model")},
+                concurrency=conc, max_jobs=mx, on_event=emit,
+                should_stop=lambda: _CORPUS_RUN.get("stop"))
+        except Exception as e:
+            _CORPUS_RUN["log"].append("中断：" + str(e)[:120])
+        finally:
+            _CORPUS_RUN["running"] = False
+
+    threading.Thread(target=work, daemon=True).start()
+    return {"ok": True, "estimate": est, "concurrency": conc}
 
 
 # ---------------------------------------------------------------- 配置
@@ -1147,6 +1218,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.handle_book_get(path)
             if path == "/api/storage":
                 return self.send_json(storage_info())
+            if path == "/api/corpus/overview":
+                return self.send_json(corpus_overview())
+            if path == "/api/corpus/search":
+                q = (parse_qs(u.query).get("q") or [""])[0]
+                return self.send_json({"hits": corpus.search(q, k=12) if q.strip() else []})
+            if path == "/api/corpus/report":
+                return self.send_json({"markdown": corpus.report_markdown(),
+                                       "baseline": corpus.genre_baseline()})
+            if path == "/api/corpus/progress":
+                return self.send_json(dict(_CORPUS_RUN))
             if path == "/api/health":
                 return self.send_json({"ok": True, "skills": len(SKILLS)})
             return self.send_text("Not Found", 404)
@@ -1170,6 +1251,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"ok": True, "config": cfg})
             if path == "/api/test":
                 return self.handle_test()
+            if path == "/api/corpus/import":
+                body = self.read_json()
+                return self.send_json(corpus_import(body.get("name"), body.get("text") or ""))
+            if path == "/api/corpus/plan":
+                body = self.read_json()
+                return self.send_json(corpus_plan(body.get("plan") or "sample"))
+            if path == "/api/corpus/estimate":
+                return self.send_json(corpus.estimate())
+            if path == "/api/corpus/style":
+                return self.send_json(corpus_style_all())
+            if path == "/api/corpus/run":
+                return self.send_json(corpus_start(self.read_json()))
+            if path == "/api/corpus/stop":
+                _CORPUS_RUN["stop"] = True
+                return self.send_json({"ok": True})
             if path == "/api/conversations":
                 body = self.read_json()
                 c = new_conversation(body.get("skillId", "novel-engine"), body.get("title"))

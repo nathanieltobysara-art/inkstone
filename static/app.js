@@ -237,7 +237,7 @@ async function boot() {
     else {
       try {
         const sv = localStorage.getItem('inkstone.view');
-        if (sv && ['write', 'book', 'skills', 'project'].includes(sv)) S.view = sv;
+        if (sv && ['write', 'book', 'skills', 'project', 'corpus'].includes(sv)) S.view = sv;
       } catch (_) { }
     }
     if (qs.get('tab')) BK.tab = qs.get('tab');
@@ -459,12 +459,13 @@ function fmtTime(ts) {
 }
 
 function renderPanel() {
-  const titles = { write: '写作', skills: '技能', project: '档案', book: '书稿' };
+  const titles = { write: '写作', skills: '技能', project: '档案', book: '书稿', corpus: '语料' };
   const t = $('#panelTitle');
   if (t) t.textContent = titles[S.view] || '写作';
   if (S.view === 'book') return renderBookPanel();
   if (S.view === 'skills') return renderSkillList();
   if (S.view === 'project') return renderProjectPanel();
+  if (S.view === 'corpus') return renderCorpusPanel();
   return renderConvs();
 }
 
@@ -675,6 +676,166 @@ function renderInspector() {
     : '<div class="insp-sub">填了创作档案后会显示在这里。</div>';
 }
 
+/* ---------------------------------------------------------- 语料库 */
+const CORPUS = { data: null, log: [], report: '', poll: 0 };
+
+async function loadCorpus() {
+  try { CORPUS.data = await api('GET', '/api/corpus/overview'); }
+  catch (e) { CORPUS.data = null; }
+  return CORPUS.data;
+}
+
+function csCard(k, v, s) {
+  return '<div class="cs-card"><div class="cs-k">' + k + '</div><div class="cs-v">' + v + '</div>' +
+    (s ? '<div class="cs-s">' + s + '</div>' : '') + '</div>';
+}
+
+function renderCorpusPanel() {
+  const body = $('#panelBody');
+  if (!body) return;
+  const books = (CORPUS.data || {}).books || [];
+  let h = '<div class="corpus-acts">' +
+    '<button class="corpus-btn" data-cact="import">导入 .txt / .md</button>' +
+    '<button class="corpus-btn" data-cact="style">统计文风</button>' +
+    '<button class="corpus-btn" data-cact="plan">排蒸馏任务</button>' +
+    '<button class="corpus-btn primary" data-cact="run">开始蒸馏</button>' +
+    '</div><div class="corpus-list">';
+  if (!books.length) h += '<div class="panel-empty">还没有书。<br>点「导入」选几个 txt。</div>';
+  books.forEach(b => {
+    h += '<div class="corpus-item"><div class="ci-t">' + esc(b.title) + '</div>' +
+      '<div class="ci-m">' + esc(b.genre || '未分类') + ' · ' +
+      (b.words / 10000).toFixed(1) + ' 万字 · ' + b.chapters + ' 章</div></div>';
+  });
+  h += '</div>';
+  body.innerHTML = h;
+  body.querySelectorAll('[data-cact]').forEach(el => el.onclick = () => corpusAction(el.dataset.cact));
+}
+
+function renderCorpusView() {
+  const el = $('#corpusBody');
+  if (!el) return;
+  const d = CORPUS.data || {};
+  const ov = d.overview || {};
+  const jobs = ov.jobs || {};
+  let h = '<div class="corpus-cards">' +
+    csCard('书目', (ov.books || 0) + ' 本', (ov.chapters || 0) + ' 章') +
+    csCard('总字数', ((ov.words || 0) / 10000).toFixed(1) + ' 万') +
+    csCard('已蒸馏', (ov.distilled || 0) + ' 章', '待跑 ' + (jobs.todo || 0)) +
+    csCard('失败', (jobs.dead || 0) + ' 章', '重试 3 次后放弃') +
+    '</div>' +
+    '<div class="corpus-search"><input class="input" id="corpusQ" placeholder="跨书检索：人名、地名、任何片段">' +
+    '<button class="corpus-btn" id="btnCorpusSearch">搜索</button></div>' +
+    '<div id="corpusResult" class="corpus-result"></div>';
+  if (CORPUS.log.length) {
+    h += '<div class="corpus-log"><div class="cl-h">蒸馏进度</div>' +
+      CORPUS.log.slice(-14).map(x => '<div class="cl-l">' + esc(x) + '</div>').join('') + '</div>';
+  }
+  if (CORPUS.report) {
+    h += '<pre class="corpus-report">' + esc(CORPUS.report) + '</pre>';
+  } else {
+    h += '<div class="corpus-hint">左边可以导入书稿、统计文风、排任务、开始蒸馏。<br>' +
+      '蒸馏会逐章调用当前配置的模型，跑之前会先报预算。</div>';
+  }
+  el.innerHTML = h;
+  const btn = $('#btnCorpusSearch');
+  if (btn) btn.onclick = corpusSearch;
+  const q = $('#corpusQ');
+  if (q) q.onkeydown = e => { if (e.key === 'Enter') corpusSearch(); };
+}
+
+async function corpusSearch() {
+  const q = ($('#corpusQ') || {}).value || '';
+  const box = $('#corpusResult');
+  if (!box) return;
+  if (!q.trim()) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="corpus-hint">检索中…</div>';
+  try {
+    const d = await api('GET', '/api/corpus/search?q=' + encodeURIComponent(q));
+    const hits = d.hits || [];
+    box.innerHTML = hits.length
+      ? hits.map(hh => '<div class="corpus-hit"><div class="ch-t">第' + hh.no + '章 ' +
+          esc(hh.title) + '</div><div class="ch-s">' + esc(hh.snippet) + '</div></div>').join('')
+      : '<div class="corpus-hint">没找到。</div>';
+  } catch (e) {
+    box.innerHTML = '<div class="corpus-hint">检索失败：' + esc(e.message) + '</div>';
+  }
+}
+
+function corpusImport() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.txt,.md';
+  inp.multiple = true;
+  inp.onchange = async () => {
+    const files = Array.from(inp.files || []);
+    if (!files.length) return;
+    let ok = 0, bad = 0;
+    for (const f of files) {
+      try {
+        const r = await api('POST', '/api/corpus/import', { name: f.name, text: await f.text() });
+        if (r && r.ok) ok++; else bad++;
+      } catch (e) { bad++; }
+    }
+    toast('导入 ' + ok + ' 本' + (bad ? '，失败 ' + bad : ''));
+    await loadCorpus();
+    renderCorpusPanel(); renderCorpusView();
+  };
+  inp.click();
+}
+
+async function corpusAction(kind) {
+  if (kind === 'import') return corpusImport();
+  try {
+    if (kind === 'style') {
+      const r = await api('POST', '/api/corpus/style', {});
+      toast('已统计 ' + r.count + ' 本文风指标');
+    } else if (kind === 'plan') {
+      const r = await api('POST', '/api/corpus/plan', { plan: 'sample' });
+      toast('已排 ' + r.planned + ' 个任务');
+      await loadCorpus();
+    } else if (kind === 'run') {
+      const est = await api('POST', '/api/corpus/estimate', {});
+      if (!est.jobs) { toast('没有待办任务，先排任务'); return; }
+      const go = confirm('待跑 ' + est.jobs + ' 章\n\n输入约 ' +
+        (est.tokensIn / 10000).toFixed(1) + ' 万 token，输出约 ' +
+        (est.tokensOut / 10000).toFixed(1) + ' 万 token\n并发 4，约 ' +
+        est.minutes + ' 分钟\n\n开始蒸馏？');
+      if (!go) return;
+      const r = await api('POST', '/api/corpus/run', { concurrency: 4 });
+      if (!r.ok) { toast(r.error || '启动失败'); return; }
+      CORPUS.log = [];
+      toast('开始蒸馏，共 ' + r.estimate.jobs + ' 章');
+      corpusPoll();
+    }
+  } catch (e) { toast(e.message); }
+  renderCorpusPanel();
+  renderCorpusView();
+}
+
+function corpusPoll() {
+  clearTimeout(CORPUS.poll);
+  CORPUS.poll = setTimeout(async () => {
+    try {
+      const p = await api('GET', '/api/corpus/progress');
+      CORPUS.log = p.log || [];
+      renderCorpusView();
+      if (p.running) return corpusPoll();
+      await loadCorpus();
+      renderCorpusPanel(); renderCorpusView();
+      toast('蒸馏结束：成功 ' + p.done + ' / 失败 ' + p.failed);
+    } catch (e) { /* 轮询失败静默，下一轮再说 */ }
+  }, 1200);
+}
+
+async function corpusReport() {
+  try {
+    const d = await api('GET', '/api/corpus/report');
+    CORPUS.report = d.markdown || '';
+    renderCorpusView();
+    toast('报告已生成');
+  } catch (e) { toast(e.message); }
+}
+
 function setView(v) {
   S.view = v;
   try { localStorage.setItem('inkstone.view', v); } catch (_) { }
@@ -683,11 +844,16 @@ function setView(v) {
   if (add) add.classList.toggle('hidden', v === 'skills');
   if (imp) imp.classList.toggle('hidden', v !== 'skills');
   if (bl) bl.classList.toggle('hidden', v !== 'book');
-  const vw = $('#viewWrite'), vb = $('#viewBook');
-  if (vw) vw.classList.toggle('hidden', v === 'book');
+  const vw = $('#viewWrite'), vb = $('#viewBook'), vc = $('#viewCorpus');
+  if (vw) vw.classList.toggle('hidden', v === 'book' || v === 'corpus');
   if (vb) vb.classList.toggle('hidden', v !== 'book');
+  if (vc) vc.classList.toggle('hidden', v !== 'corpus');
   const app = $('#app');
   if (app) app.classList.toggle('book-mode', v === 'book');
+  if (app) app.classList.toggle('corpus-mode', v === 'corpus');
+  if (v === 'corpus') {
+    loadCorpus().then(() => { renderCorpusView(); renderCorpusPanel(); });
+  }
   if (v === 'book') {
     loadBooks().then(() => {
       if (!BK.book && BK.list.length) openBook(BK.list[0].id);
@@ -2051,6 +2217,8 @@ function bindEvents() {
 
   $('#btnMenu').onclick = () => $('#panel').classList.toggle('open');
   $$('.rail-btn[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+  const ci = $('#btnCorpusImport'); if (ci) ci.onclick = corpusImport;
+  const cr = $('#btnCorpusReport'); if (cr) cr.onclick = corpusReport;
 
   $('#btnSend').onclick = () => send(false);
   $('#btnStop').onclick = () => { if (S.ctrl) S.ctrl.abort(); };

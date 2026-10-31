@@ -63,6 +63,14 @@ Measured on a 300,000-character manuscript:
 - **11 writing templates** — 6 chapter templates (conflict / face-slap / transition / romance / suspense / climax) plus 5 structural templates (golden first three chapters, three-act, four-part, hero's journey, web-novel pacing table)
 - **Source material import** — txt / md / docx / epub / pdf / html / csv, with automatic body extraction
 
+### Corpus (hundreds of reference books)
+
+- **Import** — point it at a folder of `.txt` / `.md`; it splits on Chinese chapter headings. 300 books / 89 million characters in about 47 seconds
+- **Cross-book search** — SQLite FTS5 with Chinese bigram tokenisation, **3.8 ms** at the 90-million-character scale; character and place names resolve instantly
+- **Batch distillation** — per-chapter summary, key events, chapter-end hook and beat type, run concurrently with retries and crash-safe resumption
+- **Genre baselines** — chapter length, sentence length, short-sentence ratio, dialogue ratio and beat distribution, exported as a comparison report
+- **Sampling plans** — first 30 chapters / first 30 plus every 5th / everything. The default saves 60% of calls versus distilling every chapter
+
 ### Engineering
 
 - **11 model providers out of the box** — DeepSeek, OpenAI, Claude, Kimi, Zhipu GLM, Qwen, SiliconFlow, OpenRouter, Ollama, LM Studio, vLLM, or any OpenAI-compatible endpoint
@@ -115,10 +123,10 @@ Using something else? **Add provider → Custom service**, then fill in the base
 
 ```
 app.py        202 lines   pywebview window + JS bridge (save dialog, folder picker, restart)
-server.py   2,042 lines   HTTP server + SSE streaming + provider adapters + compaction + prompt assembly
+server.py   2,138 lines   HTTP server + SSE streaming + provider adapters + compaction + prompt assembly
 books.py    1,077 lines   manuscript model + BM25 retrieval + context injection + consistency checks
-corpus.py     492 lines   corpus subsystem: hundreds of reference books + SQLite/FTS5 + distillation queue
-static/     5,980 lines   plain frontend, no framework, no build step (app.js / styles.css / templates.js / workflows.js)
+corpus.py     875 lines   corpus: SQLite/FTS5 retrieval + distillation worker + genre aggregation
+static/     6,450 lines   plain frontend, no framework, no build step (app.js / styles.css / templates.js / workflows.js)
 skills/          19 files Markdown skill definitions, hot-reloaded
 tools/                    benchmarks, mock LLM, screenshots, demo data
 ```
@@ -136,7 +144,7 @@ pyinstaller Inkstone.spec
 
 ## Known limitations
 
-- **The corpus subsystem (`corpus.py`) is CLI-only** — there is no UI yet, and the batch distillation worker and aggregate reports are still in progress
+- **The corpus is BM25 full-text only, with no semantic search.** Finding the same words is fast; finding similar *writing* is not possible yet, and there is no automatic cross-book character extraction
 - Only verified on Windows. `os.startfile` and `gui="edgechromium"` in `app.py` are Windows-specific; macOS and Linux need a few changes
 - The BM25 index is rebuilt in full rather than incrementally. Fine for one book, slower at the multi-million-character scale
 - Consistency checking is "program extracts candidates + model compares locally" — not an oracle. It misses things and it raises false positives; the author still decides

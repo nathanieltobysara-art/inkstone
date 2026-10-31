@@ -1647,3 +1647,58 @@ body.has-image .ch-head,
 body.has-image .ch-text,
 body.has-image .ch-status { position: relative; z-index: 1; }
 body.is-dark.has-image .ch-body::before { background: rgba(20, 19, 17, .62); }
+
+/* ---------------------------------------------------------- 语料库 */
+.view-corpus { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.corpus-head { font-family: var(--serif); font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: .02em; }
+.corpus-body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 26px 60px; }
+
+.corpus-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.cs-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.cs-k { font-size: 11px; color: var(--muted); letter-spacing: .06em; margin-bottom: 6px; }
+.cs-v { font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+.cs-s { font-size: 11px; color: var(--muted-2); margin-top: 5px; }
+
+.corpus-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 10px 6px; }
+.corpus-btn { font-family: var(--sans); font-size: 12px; padding: 8px 10px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--surface-1); color: var(--ink-2); cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s; }
+.corpus-btn:hover { background: var(--surface-2); border-color: var(--muted-2); color: var(--ink); }
+.corpus-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.corpus-btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+
+.corpus-list { padding: 4px 10px 14px; }
+.corpus-item { padding: 9px 10px; border-radius: 7px; cursor: default; }
+.corpus-item:hover { background: var(--surface-2); }
+.ci-t { font-size: 13px; color: var(--ink); margin-bottom: 3px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.ci-m { font-size: 11px; color: var(--muted-2); }
+
+.corpus-search { display: flex; gap: 8px; margin-bottom: 14px; }
+.corpus-search .input { flex: 1; }
+.corpus-result { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.corpus-hit { background: var(--surface-1); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 7px; padding: 10px 12px; }
+.ch-t { font-size: 12px; color: var(--ink); font-weight: 600; margin-bottom: 5px; }
+.ch-s { font-size: 12px; color: var(--muted); line-height: 1.75; }
+
+.corpus-log { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 16px; max-height: 220px; overflow-y: auto; }
+.cl-h { font-size: 11px; color: var(--muted); letter-spacing: .06em; margin-bottom: 8px; }
+.cl-l { font-size: 12px; color: var(--ink-2); font-family: var(--mono); line-height: 1.9; }
+
+.corpus-report { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 20px; font-family: var(--mono); font-size: 12px; line-height: 1.85; color: var(--ink-2);
+  white-space: pre-wrap; word-break: break-word; }
+.corpus-hint { font-size: 13px; color: var(--muted-2); line-height: 1.9; padding: 8px 2px; }
+
+body.is-dark .cs-card, body.is-dark .corpus-hit,
+body.is-dark .corpus-log, body.is-dark .corpus-report { background: var(--surface-2); }
+
+@media (max-width: 900px) {
+  .corpus-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 语料视图不需要右侧信息栏，直接让主区吃掉那两列 */
+.app.corpus-mode { grid-template-columns: var(--rail-w) var(--panel-w) 1fr; }
+.app.corpus-mode .inspector { display: none; }
