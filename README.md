@@ -75,7 +75,7 @@ data/books/<bid>/
 
 ### 方式一：直接下载（Windows）
 
-从 [Releases](releases) 下载 `Inkstone.exe`，双击运行。单文件，无需安装 Python。
+从 [Releases](../../releases) 下载 `Inkstone.exe`，双击运行。单文件，无需安装 Python。
 
 > 需要系统已安装 [Microsoft Edge WebView2 运行时](https://developer.microsoft.com/microsoft-edge/webview2/)（Win10 1803+ / Win11 通常自带）。
 
